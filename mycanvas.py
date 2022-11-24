@@ -8,6 +8,7 @@ from geometry.segments.line import Line
 from geometry.point import Point
 from compgeom.tesselation import Tesselation
 from compgeom.compgeom import CompGeom
+import json
 
 class MyCanvas(QtOpenGL.QGLWidget):
     def __init__(self):
@@ -178,6 +179,7 @@ class MyCanvas(QtOpenGL.QGLWidget):
             ymin = self.m_hmodel.getBoundBox()[2]
             y_quant = int((ymax - ymin) / self.space)
             glNewList(self.list, GL_COMPILE)
+            points_list = {"points": [] }
             for x in range(x_quant):
                 for y in range(y_quant):
                     posx = xmin + self.space*x
@@ -189,4 +191,10 @@ class MyCanvas(QtOpenGL.QGLWidget):
                         glBegin(GL_POINTS)
                         glVertex2f(point.getX(), point.getY())
                         glEnd()
+                        points_list["points"].append([point.getX(), point.getY()])
             glEndList()
+            json_object = json.dumps(points_list)
+ 
+            # Writing to sample.json
+            with open("points_list.json", "w") as outfile:
+                outfile.write(json_object)
