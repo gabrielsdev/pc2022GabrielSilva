@@ -7,6 +7,7 @@ from he.hemodel import HeModel
 from geometry.segments.line import Line
 from geometry.point import Point
 from compgeom.tesselation import Tesselation
+from compgeom.compgeom import CompGeom
 
 class MyCanvas(QtOpenGL.QGLWidget):
     def __init__(self):
@@ -24,10 +25,12 @@ class MyCanvas(QtOpenGL.QGLWidget):
         self.m_pt1 = QtCore.QPoint(0,0)
         self.m_hmodel = HeModel()
         self.m_controller = HeController(self.m_hmodel)
+        self.space = 0
 
     def initializeGL(self):
         #glClearColor(1.0, 1.0, 1.0, 1.0)
-        glClear(GL_COLOR_BUFFER_BIT)
+        glEnable(GL_DEPTH_TEST)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glEnable(GL_LINE_SMOOTH)
         self.list = glGenLists(1)
 
@@ -48,7 +51,7 @@ class MyCanvas(QtOpenGL.QGLWidget):
         glLoadIdentity()
 
     def paintGL(self):
-        glClear(GL_COLOR_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glCallList(self.list)
         glDeleteLists(self.list, 1)
         self.list = glGenLists(1)
@@ -64,7 +67,6 @@ class MyCanvas(QtOpenGL.QGLWidget):
 
 
         if not(self.m_hmodel.isEmpty()):
-            #print("teste")
             patches = self.m_hmodel.getPatches()
             for pat in patches:
                 pts = pat.getPoints()
@@ -90,12 +92,12 @@ class MyCanvas(QtOpenGL.QGLWidget):
         self.m_model = _model
 
     def fitWorldToViewport(self):
-        print("Redimensionar")
         if self.m_hmodel == None:
             return
         self.m_L,self.m_R,self.m_B,self.m_T=self.m_hmodel.getBoundBox()
         self.scaleWorldWindow(1.10)
         self.update()
+        self.grid(self.space)
 
     def scaleWorldWindow(self,_scaleFac):
         # Compute canvas viewport distortion ratio.
@@ -164,3 +166,27 @@ class MyCanvas(QtOpenGL.QGLWidget):
         self.m_controller.insertSegment(segment, 0.01)
         self.update()
         self.repaint()
+        self.grid(self.space)
+
+    def grid(self, space):
+        self.space = space
+        if self.space > 0:
+            xmax = self.m_hmodel.getBoundBox()[1]
+            xmin = self.m_hmodel.getBoundBox()[0]
+            x_quant = int((xmax - xmin) / self.space)
+            ymax = self.m_hmodel.getBoundBox()[3]
+            ymin = self.m_hmodel.getBoundBox()[2]
+            y_quant = int((ymax - ymin) / self.space)
+            glNewList(self.list, GL_COMPILE)
+            for x in range(x_quant):
+                for y in range(y_quant):
+                    posx = xmin + self.space*x
+                    posy = ymin + self.space*y
+                    point = Point(posx, posy)
+                    if CompGeom.isPointInPolygon(self.m_hmodel.getPoints(), point):
+                        glColor4f(1.0, 1.0, 1.0, 1.0)
+                        glPointSize(4)
+                        glBegin(GL_POINTS)
+                        glVertex2f(point.getX(), point.getY())
+                        glEnd()
+            glEndList()

@@ -16,9 +16,15 @@ class MyWindow(QMainWindow):
         # create a Toolbar
         tb = self.addToolBar("File")
         fit = QAction(QIcon("fit.png"),"fit",self)
+        grid = QAction(QIcon("grid.png"),"grid",self)
         tb.addAction(fit)
+        tb.addAction(grid)
         tb.actionTriggered[QAction].connect(self.tbpressed)
 
     def tbpressed(self,a):
         if a.text() == "fit":
             self.canvas.fitWorldToViewport()
+        elif a.text() == "grid":
+            value, ok = QInputDialog.getInt(self, 'Espaçamento da grade', 'Informe o espaçamento entre os pontos da grade:')
+            if ok:
+                self.canvas.grid(int(value))
